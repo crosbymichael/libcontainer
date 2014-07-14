@@ -15,15 +15,16 @@ import (
 )
 
 func RunIn(container *libcontainer.Config, state *libcontainer.State, args []string, nsinitPath string, term Terminal, startCallback func()) (int, error) {
-	containerJson, err := getContainerJson(container)
-	if err != nil {
-		return -1, err
-	}
-
-	var cmd exec.Cmd
+	var (
+		err error
+		cmd exec.Cmd
+	)
 
 	cmd.Path = nsinitPath
-	cmd.Args = getNsEnterCommand(nsinitPath, strconv.Itoa(state.InitPid), containerJson, args)
+
+	if cmd.Args, err = getNsEnterCommand(nsinitPath, strconv.Itoa(state.InitPid), container, args); err != nil {
+		return -1, err
+	}
 
 	if err := term.Attach(&cmd); err != nil {
 		return -1, err
@@ -33,6 +34,7 @@ func RunIn(container *libcontainer.Config, state *libcontainer.State, args []str
 	if err := cmd.Start(); err != nil {
 		return -1, err
 	}
+
 	if startCallback != nil {
 		startCallback()
 	}
@@ -48,12 +50,11 @@ func RunIn(container *libcontainer.Config, state *libcontainer.State, args []str
 
 // ExecIn uses an existing pid and joins the pid's namespaces with the new command.
 func ExecIn(container *libcontainer.Config, state *libcontainer.State, args []string) error {
-	containerJson, err := getContainerJson(container)
+	// Enter the namespace and then finish setup
+	finalArgs, err := getNsEnterCommand(os.Args[0], strconv.Itoa(state.InitPid), container, args)
 	if err != nil {
 		return err
 	}
-	// Enter the namespace and then finish setup
-	finalArgs := getNsEnterCommand(os.Args[0], strconv.Itoa(state.InitPid), containerJson, args)
 
 	if err := system.Execv(finalArgs[0], finalArgs[0:], os.Environ()); err != nil {
 		return err
@@ -71,14 +72,19 @@ func getContainerJson(container *libcontainer.Config) (string, error) {
 	return string(containerJson), nil
 }
 
-func getNsEnterCommand(nsinitPath, initPid, containerJson string, args []string) []string {
+func getNsEnterCommand(nsinitPath, initPid string, container *libcontainer.Config, args []string) ([]string, error) {
+	containerJson, err := getContainerJson(container)
+	if err != nil {
+		return nil, err
+	}
+
 	return append([]string{
 		nsinitPath,
 		"nsenter",
 		"--nspid", initPid,
 		"--containerjson", containerJson,
 		"--",
-	}, args...)
+	}, args...), nil
 }
 
 // NsEnter is run after entering the namespace.
