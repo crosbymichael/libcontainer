@@ -14,19 +14,15 @@ import (
 	"github.com/dotcloud/docker/pkg/system"
 )
 
-func RunIn(container *libcontainer.Config, state *libcontainer.State, args []string, nsinitPath string, term Terminal, startCallback func()) (int, error) {
-	var (
-		err error
-		cmd exec.Cmd
-	)
-
-	cmd.Path = nsinitPath
-
-	if cmd.Args, err = getNsEnterCommand(nsinitPath, strconv.Itoa(state.InitPid), container, args); err != nil {
+func RunIn(container *libcontainer.Config, state *libcontainer.State, args []string, nsinitPath string, term Terminal, startCallback func(*exec.Cmd)) (int, error) {
+	initArgs, err := getNsEnterCommand(nsinitPath, strconv.Itoa(state.InitPid), container, args)
+	if err != nil {
 		return -1, err
 	}
 
-	if err := term.Attach(&cmd); err != nil {
+	cmd := exec.Command(nsinitPath, initArgs...)
+
+	if err := term.Attach(cmd); err != nil {
 		return -1, err
 	}
 	defer term.Close()
@@ -36,7 +32,7 @@ func RunIn(container *libcontainer.Config, state *libcontainer.State, args []str
 	}
 
 	if startCallback != nil {
-		startCallback()
+		startCallback(cmd)
 	}
 
 	if err := cmd.Wait(); err != nil {

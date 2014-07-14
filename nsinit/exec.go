@@ -31,10 +31,12 @@ func execAction(context *cli.Context) {
 		log.Fatalf("unable to read state.json: %s", err)
 	}
 
+	term := namespaces.NewTerminal(os.Stdin, os.Stdout, os.Stderr, container.Tty)
 	if state != nil {
-		err = namespaces.ExecIn(container, state, []string(context.Args()))
+		exitCode, err = namespaces.RunIn(container, state, []string(context.Args()), os.Args[0], term, func(cmd *exec.Cmd) {
+			go forwardSignals(cmd)
+		})
 	} else {
-		term := namespaces.NewTerminal(os.Stdin, os.Stdout, os.Stderr, container.Tty)
 		exitCode, err = startContainer(container, term, dataPath, []string(context.Args()))
 	}
 
@@ -51,27 +53,30 @@ func execAction(context *cli.Context) {
 // Signals sent to the current process will be forwarded to container.
 func startContainer(container *libcontainer.Config, term namespaces.Terminal, dataPath string, args []string) (int, error) {
 	var (
-		cmd  *exec.Cmd
-		sigc = make(chan os.Signal, 10)
+		cmd *exec.Cmd
 	)
-
-	signal.Notify(sigc)
 
 	createCommand := func(container *libcontainer.Config, console, rootfs, dataPath, init string, pipe *os.File, args []string) *exec.Cmd {
 		cmd = namespaces.DefaultCreateCommand(container, console, rootfs, dataPath, init, pipe, args)
 		if logPath != "" {
 			cmd.Env = append(cmd.Env, fmt.Sprintf("log=%s", logPath))
 		}
+
 		return cmd
 	}
 
 	startCallback := func() {
-		go func() {
-			for sig := range sigc {
-				cmd.Process.Signal(sig)
-			}
-		}()
+		go forwardSignals(cmd)
 	}
 
 	return namespaces.Exec(container, term, "", dataPath, args, createCommand, startCallback)
+}
+
+func forwardSignals(cmd *exec.Cmd) {
+	sigc := make(chan os.Signal, 10)
+	signal.Notify(sigc)
+
+	for sig := range sigc {
+		cmd.Process.Signal(sig)
+	}
 }
