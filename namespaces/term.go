@@ -21,6 +21,7 @@ func NewTerminal(stdin io.Reader, stdout, stderr io.Writer, tty bool) Terminal {
 			stderr: stderr,
 		}
 	}
+
 	return &StdTerminal{
 		stdin:  stdin,
 		stdout: stdout,

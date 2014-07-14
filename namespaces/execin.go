@@ -20,6 +20,14 @@ func RunIn(container *libcontainer.Config, state *libcontainer.State, args []str
 		return -1, err
 	}
 
+	if container.Tty {
+		master, _, err := system.CreateMasterAndConsole()
+		if err != nil {
+			return -1, err
+		}
+		term.SetMaster(master)
+	}
+
 	cmd := exec.Command(nsinitPath, initArgs...)
 
 	if err := term.Attach(cmd); err != nil {
@@ -55,6 +63,7 @@ func ExecIn(container *libcontainer.Config, state *libcontainer.State, args []st
 	if err := system.Execv(finalArgs[0], finalArgs[0:], os.Environ()); err != nil {
 		return err
 	}
+
 	panic("unreachable")
 }
 
@@ -65,6 +74,7 @@ func getContainerJson(container *libcontainer.Config) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	return string(containerJson), nil
 }
 
