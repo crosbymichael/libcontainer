@@ -20,20 +20,38 @@ func RunIn(container *libcontainer.Config, state *libcontainer.State, args []str
 		return -1, err
 	}
 
-	if container.Tty {
-		master, _, err := system.CreateMasterAndConsole()
-		if err != nil {
+	cmd := exec.Command(nsinitPath, initArgs...)
+	/*
+		if container.Tty {
+			master, console, err := system.CreateMasterAndConsole()
+			if err != nil {
+				return -1, err
+			}
+			term.SetMaster(master)
+
+			slave, err := system.OpenTerminal(console, os.O_RDWR)
+			if err != nil {
+				return -1, err
+			}
+
+			//cmd.Stdin = slave
+			cmd.Stdout = slave
+			cmd.Stderr = slave
+
+			go io.Copy(os.Stdout, master)
+			cmd.Stdin = slave
+			go io.Copy(master, os.Stdin)
+		}
+
+		if err := term.Attach(cmd); err != nil {
 			return -1, err
 		}
-		term.SetMaster(master)
-	}
+		defer term.Close()
+	*/
 
-	cmd := exec.Command(nsinitPath, initArgs...)
-
-	if err := term.Attach(cmd); err != nil {
-		return -1, err
-	}
-	defer term.Close()
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 
 	if err := cmd.Start(); err != nil {
 		return -1, err
