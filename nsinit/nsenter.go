@@ -14,7 +14,6 @@ var nsenterCommand = cli.Command{
 	Flags: []cli.Flag{
 		cli.IntFlag{Name: "nspid"},
 		cli.StringFlag{Name: "containerjson"},
-		cli.StringFlag{Name: "console"},
 	},
 }
 

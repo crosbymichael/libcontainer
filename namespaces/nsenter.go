@@ -88,18 +88,14 @@ void nsenter() {
 	static const struct option longopts[] = {
 		{ "nspid",         required_argument, NULL, 'n' },
 		{ "containerjson", required_argument, NULL, 'c' },
-		{ "console",       required_argument, NULL, 'l' },
 		{ NULL,            0,                 NULL,  0  }
 	};
 
 	int c;
-    int consolefd;
 	pid_t init_pid = -1;
 	char *init_pid_str = NULL;
 	char *container_json = NULL;
-    char *console = NULL;
-
-    while ((c = getopt_long_only(argc, argv, "n:s:c:l:", longopts, NULL)) != -1) {
+	while ((c = getopt_long_only(argc, argv, "n:s:c:", longopts, NULL)) != -1) {
 		switch (c) {
 		case 'n':
 			init_pid_str = optarg;
@@ -107,23 +103,17 @@ void nsenter() {
 		case 'c':
 			container_json = optarg;
 			break;
-        case 'l':
-            console = optarg;
-            break;
 		}
 	}
 
-    if (container_json == NULL || init_pid_str == NULL || console == NULL) {
+	if (container_json == NULL || init_pid_str == NULL) {
 		print_usage();
 		exit(1);
 	}
 
-    FILE* log;
-    log = fopen("nsenter.log", "a");
-
 	init_pid = strtol(init_pid_str, NULL, 10);
 	if (errno != 0 || init_pid <= 0) {
-		fprintf(log, "nsenter: Failed to parse PID from \"%s\" with error: \"%s\"\n", init_pid_str, strerror(errno));
+		fprintf(stderr, "nsenter: Failed to parse PID from \"%s\" with error: \"%s\"\n", init_pid_str, strerror(errno));
 		print_usage();
 		exit(1);
 	}
@@ -138,18 +128,11 @@ void nsenter() {
 	struct dirent *dent;
 	DIR *dir = opendir(ns_dir);
 	if (dir == NULL) {
-		fprintf(log, "nsenter: Failed to open directory \"%s\" with error: \"%s\"\n", ns_dir, strerror(errno));
+		fprintf(stderr, "nsenter: Failed to open directory \"%s\" with error: \"%s\"\n", ns_dir, strerror(errno));
 		exit(1);
 	}
 
-    // before we setns we need to dup the console
-    consolefd = open(console, O_RDWR);
-    if (consolefd < 0) {
-        fprintf(log, "nsenter: failed to open console %s\n", console, strerror(errno));
-        exit(1);
-    }
-
-    while((dent = readdir(dir)) != NULL) {
+	while((dent = readdir(dir)) != NULL) {
 		if(strcmp(dent->d_name, ".") == 0 || strcmp(dent->d_name, "..") == 0 || strcmp(dent->d_name, "user") == 0) {
 			continue;
 		}
@@ -160,13 +143,13 @@ void nsenter() {
 		snprintf(buf, PATH_MAX - 1, "%s%s", ns_dir, dent->d_name);
 		int fd = open(buf, O_RDONLY);
 		if (fd == -1) {
-			fprintf(log, "nsenter: Failed to open ns file \"%s\" for ns \"%s\" with error: \"%s\"\n", buf, dent->d_name, strerror(errno));
+			fprintf(stderr, "nsenter: Failed to open ns file \"%s\" for ns \"%s\" with error: \"%s\"\n", buf, dent->d_name, strerror(errno));
 			exit(1);
 		}
 
 		// Set the namespace.
 		if (setns(fd, 0) == -1) {
-			fprintf(log, "nsenter: Failed to setns for \"%s\" with error: \"%s\"\n", dent->d_name, strerror(errno));
+			fprintf(stderr, "nsenter: Failed to setns for \"%s\" with error: \"%s\"\n", dent->d_name, strerror(errno));
 			exit(1);
 		}
 		close(fd);
@@ -176,26 +159,13 @@ void nsenter() {
 	// We must fork to actually enter the PID namespace.
 	int child = fork();
 	if (child == 0) {
-        if (dup2(consolefd, 0) != 0) {
-            fprintf(log, "nsenter: failed to dup 0 %s\n",  strerror(errno));
-            exit(1);
-        }
-        if (dup2(consolefd, STDOUT_FILENO) != STDOUT_FILENO) {
-            fprintf(log, "nsenter: failed to dup 1 %s\n",  strerror(errno));
-            exit(1);
-        }
-        if (dup2(consolefd, STDERR_FILENO) != STDERR_FILENO) {
-            fprintf(log, "nsenter: failed to dup 2 %s\n",  strerror(errno));
-            exit(1);
-        }
-
-        // Finish executing, let the Go runtime take over.
+		// Finish executing, let the Go runtime take over.
 		return;
 	} else {
 		// Parent, wait for the child.
 		int status = 0;
 		if (waitpid(child, &status, 0) == -1) {
-			fprintf(log, "nsenter: Failed to waitpid with error: \"%s\"\n", strerror(errno));
+			fprintf(stderr, "nsenter: Failed to waitpid with error: \"%s\"\n", strerror(errno));
 			exit(1);
 		}
 
