@@ -15,17 +15,23 @@ import (
 )
 
 func RunIn(container *libcontainer.Config, state *libcontainer.State, args []string, nsinitPath string, term Terminal, startCallback func(*exec.Cmd)) (int, error) {
-	initArgs, err := getNsEnterCommand(strconv.Itoa(state.InitPid), container, args)
-	if err != nil {
-		return -1, err
-	}
+	var (
+		master  *os.File
+		console string
+		err     error
+	)
 
 	if container.Tty {
-		master, _, err := system.CreateMasterAndConsole()
+		master, console, err = system.CreateMasterAndConsole()
 		if err != nil {
 			return -1, err
 		}
 		term.SetMaster(master)
+	}
+
+	initArgs, err := getNsEnterCommand(strconv.Itoa(state.InitPid), container, console, args)
+	if err != nil {
+		return -1, err
 	}
 
 	cmd := exec.Command(nsinitPath, initArgs...)
@@ -55,7 +61,7 @@ func RunIn(container *libcontainer.Config, state *libcontainer.State, args []str
 // ExecIn uses an existing pid and joins the pid's namespaces with the new command.
 func ExecIn(container *libcontainer.Config, state *libcontainer.State, args []string) error {
 	// Enter the namespace and then finish setup
-	finalArgs, err := getNsEnterCommand(strconv.Itoa(state.InitPid), container, args)
+	finalArgs, err := getNsEnterCommand(strconv.Itoa(state.InitPid), container, "", args)
 	if err != nil {
 		return err
 	}
@@ -78,18 +84,25 @@ func getContainerJson(container *libcontainer.Config) (string, error) {
 	return string(containerJson), nil
 }
 
-func getNsEnterCommand(initPid string, container *libcontainer.Config, args []string) ([]string, error) {
+func getNsEnterCommand(initPid string, container *libcontainer.Config, console string, args []string) ([]string, error) {
 	containerJson, err := getContainerJson(container)
 	if err != nil {
 		return nil, err
 	}
 
-	return append([]string{
+	out := []string{
 		"nsenter",
 		"--nspid", initPid,
 		"--containerjson", containerJson,
-		"--",
-	}, args...), nil
+	}
+
+	if console != "" {
+		out = append(out, "--console", console)
+	}
+	out = append(out, "--")
+	out = append(out, args...)
+
+	return out, nil
 }
 
 // NsEnter is run after entering the namespace.
