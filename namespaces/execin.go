@@ -4,6 +4,7 @@ package namespaces
 
 import (
 	"encoding/json"
+	"io"
 	"os"
 	"os/exec"
 	"strconv"
@@ -21,37 +22,25 @@ func RunIn(container *libcontainer.Config, state *libcontainer.State, args []str
 	}
 
 	cmd := exec.Command(nsinitPath, initArgs...)
-	/*
-		if container.Tty {
-			master, console, err := system.CreateMasterAndConsole()
-			if err != nil {
-				return -1, err
-			}
-			term.SetMaster(master)
-
-			slave, err := system.OpenTerminal(console, os.O_RDWR)
-			if err != nil {
-				return -1, err
-			}
-
-			//cmd.Stdin = slave
-			cmd.Stdout = slave
-			cmd.Stderr = slave
-
-			go io.Copy(os.Stdout, master)
-			cmd.Stdin = slave
-			go io.Copy(master, os.Stdin)
-		}
-
-		if err := term.Attach(cmd); err != nil {
+	if container.Tty {
+		master, console, err := system.CreateMasterAndConsole()
+		if err != nil {
 			return -1, err
 		}
-		defer term.Close()
-	*/
 
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+		slave, err := system.OpenTerminal(console, syscall.O_RDWR)
+		if err != nil {
+			return -1, err
+		}
+
+		cmd.Stdin = slave
+		cmd.Stdout = slave
+		cmd.Stderr = slave
+		cmd.SysProcAttr = &syscall.SysProcAttr{Setctty: true, Setsid: true}
+
+		go io.Copy(master, os.Stdin)
+		go io.Copy(os.Stdout, master)
+	}
 
 	if err := cmd.Start(); err != nil {
 		return -1, err
