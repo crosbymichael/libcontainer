@@ -1,0 +1,6 @@
+image: dockercore/libcontainer
+script:
+# Setup the DockerInDocker environment.
+  - /./dind
+  - /./go/src/github.com/docker/docker/hack/make.sh validate-dco validate-gofmt
+  - make direct-test
