@@ -151,7 +151,7 @@ func RestoreParentDeathSignal(old int) error {
 
 // SetupUser changes the groups, gid, and uid for the user inside the container
 func SetupUser(u string) error {
-	uid, gid, suppGids, home, err := user.GetUserGroupSupplementaryHome(u, syscall.Getuid(), syscall.Getgid(), "/")
+	uid, gid, suppGids, _, err := user.GetUserGroupSupplementaryHome(u, syscall.Getuid(), syscall.Getgid(), "/")
 	if err != nil {
 		return fmt.Errorf("get supplementary groups %s", err)
 	}
@@ -166,13 +166,6 @@ func SetupUser(u string) error {
 
 	if err := syscall.Setuid(uid); err != nil {
 		return fmt.Errorf("setuid %s", err)
-	}
-
-	// if we didn't get HOME already, set it based on the user's HOME
-	if envHome := os.Getenv("HOME"); envHome == "" {
-		if err := os.Setenv("HOME", home); err != nil {
-			return fmt.Errorf("set HOME %s", err)
-		}
 	}
 
 	return nil
