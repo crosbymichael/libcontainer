@@ -64,6 +64,9 @@ type Stats struct {
 }
 
 func NewStats() *Stats {
-	memoryStats := MemoryStats{Stats: make(map[string]uint64)}
-	return &Stats{MemoryStats: memoryStats}
+	return &Stats{
+		MemoryStats: MemoryStats{
+			Stats: make(map[string]uint64),
+		},
+	}
 }

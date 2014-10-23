@@ -10,19 +10,7 @@ import (
 	"github.com/docker/libcontainer/cgroups"
 )
 
-var (
-	subsystems = map[string]subsystem{
-		"devices":    &DevicesGroup{},
-		"memory":     &MemoryGroup{},
-		"cpu":        &CpuGroup{},
-		"cpuset":     &CpusetGroup{},
-		"cpuacct":    &CpuacctGroup{},
-		"blkio":      &BlkioGroup{},
-		"perf_event": &PerfEventGroup{},
-		"freezer":    &FreezerGroup{},
-	}
-	CgroupProcesses = "cgroup.procs"
-)
+const procsFile = "cgroup.procs"
 
 // The absolute path to the root of the cgroup hierarchies.
 var cgroupRoot string
@@ -41,36 +29,11 @@ func init() {
 	}
 }
 
-type subsystem interface {
-	// Returns the stats, as 'stats', corresponding to the cgroup under 'path'.
-	GetStats(path string, stats *cgroups.Stats) error
-	// Removes the cgroup represented by 'data'.
-	Remove(*data) error
-	// Creates and joins the cgroup represented by data.
-	Set(*data) error
-}
-
 type data struct {
 	root   string
 	cgroup string
 	c      *cgroups.Cgroup
 	pid    int
-}
-
-func Apply(c *cgroups.Cgroup, pid int) (cgroups.ActiveCgroup, error) {
-	d, err := getCgroupData(c, pid)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, sys := range subsystems {
-		if err := sys.Set(d); err != nil {
-			d.Cleanup()
-			return nil, err
-		}
-	}
-
-	return d, nil
 }
 
 // Symmetrical public function to update device based cgroups.  Also available
@@ -84,14 +47,6 @@ func ApplyDevices(c *cgroups.Cgroup, pid int) error {
 	devices := subsystems["devices"]
 
 	return devices.Set(d)
-}
-
-func Cleanup(c *cgroups.Cgroup) error {
-	d, err := getCgroupData(c, 0)
-	if err != nil {
-		return fmt.Errorf("Could not get Cgroup data %s", err)
-	}
-	return d.Cleanup()
 }
 
 func GetStats(c *cgroups.Cgroup) (*cgroups.Stats, error) {

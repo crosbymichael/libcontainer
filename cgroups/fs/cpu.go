@@ -9,40 +9,47 @@ import (
 	"github.com/docker/libcontainer/cgroups"
 )
 
+const (
+	shares    = "cpu.shares"
+	cfsPeriod = "cpu.cfs_period_us"
+	cfsQuota  = "cpu.cfs_quota_us"
+	cpuStat   = "cpu.stat"
+)
+
+// /sys/fs/cgroup
+// /sys/fs/cgroup/cpu/docker/1332432
+func newCpuCgroup(root string, shares, period, quota int64) (*CpuGroup, error) {
+	if err := os.MkdirAll(root, 0755); err != nil {
+		return nil, err
+	}
+
+	if shares != 0 {
+		if err := writeFile(root, shares, strconv.FormatInt(shares, 10)); err != nil {
+			return nil, err
+		}
+	}
+	if period != 0 {
+		if err := writeFile(root, cfsPeriod, strconv.FormatInt(period, 10)); err != nil {
+			return nil, err
+		}
+	}
+	if quota != 0 {
+		if err := writeFile(root, cfsQuota, strconv.FormatInt(quote, 10)); err != nil {
+			return nil, err
+		}
+	}
+
+	return &CpuGroup{
+		root: root,
+	}, nil
+}
+
 type CpuGroup struct {
+	root string
 }
 
-func (s *CpuGroup) Set(d *data) error {
-	// We always want to join the cpu group, to allow fair cpu scheduling
-	// on a container basis
-	dir, err := d.join("cpu")
-	if err != nil {
-		return err
-	}
-	if d.c.CpuShares != 0 {
-		if err := writeFile(dir, "cpu.shares", strconv.FormatInt(d.c.CpuShares, 10)); err != nil {
-			return err
-		}
-	}
-	if d.c.CpuPeriod != 0 {
-		if err := writeFile(dir, "cpu.cfs_period_us", strconv.FormatInt(d.c.CpuPeriod, 10)); err != nil {
-			return err
-		}
-	}
-	if d.c.CpuQuota != 0 {
-		if err := writeFile(dir, "cpu.cfs_quota_us", strconv.FormatInt(d.c.CpuQuota, 10)); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (s *CpuGroup) Remove(d *data) error {
-	return removePath(d.path("cpu"))
-}
-
-func (s *CpuGroup) GetStats(path string, stats *cgroups.Stats) error {
-	f, err := os.Open(filepath.Join(path, "cpu.stat"))
+func (c *CpuGroup) Stats(stats *cgroups.Stats) error {
+	f, err := os.Open(filepath.Join(c.root, cpuStat))
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil
@@ -57,6 +64,7 @@ func (s *CpuGroup) GetStats(path string, stats *cgroups.Stats) error {
 		if err != nil {
 			return err
 		}
+
 		switch t {
 		case "nr_periods":
 			stats.CpuStats.ThrottlingData.Periods = v
