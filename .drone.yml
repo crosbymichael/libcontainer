@@ -1,6 +1,8 @@
 image: dockercore/libcontainer
 script:
 # Setup the DockerInDocker environment.
-  - /./dind
-  - /./go/src/github.com/docker/docker/hack/make.sh validate-dco validate-gofmt
+  - /dind
+  - sed -i 's!docker/docker!docker/libcontainer!' /go/src/github.com/docker/docker/hack/make/.validate
+  - bash /go/src/github.com/docker/docker/hack/make/validate-dco
+  - bash /go/src/github.com/docker/docker/hack/make/validate-gofmt
   - make direct-test
