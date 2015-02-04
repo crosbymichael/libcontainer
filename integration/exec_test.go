@@ -16,7 +16,7 @@ func TestExecPS(t *testing.T) {
 		return
 	}
 
-	rootfs, err := newRootFs()
+	rootfs, err := newRootfs()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -48,7 +48,7 @@ func TestIPCPrivate(t *testing.T) {
 		return
 	}
 
-	rootfs, err := newRootFs()
+	rootfs, err := newRootfs()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,7 +79,7 @@ func TestIPCHost(t *testing.T) {
 		return
 	}
 
-	rootfs, err := newRootFs()
+	rootfs, err := newRootfs()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -111,7 +111,7 @@ func TestIPCJoinPath(t *testing.T) {
 		return
 	}
 
-	rootfs, err := newRootFs()
+	rootfs, err := newRootfs()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -144,7 +144,7 @@ func TestIPCBadPath(t *testing.T) {
 		return
 	}
 
-	rootfs, err := newRootFs()
+	rootfs, err := newRootfs()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -164,7 +164,7 @@ func TestRlimit(t *testing.T) {
 		return
 	}
 
-	rootfs, err := newRootFs()
+	rootfs, err := newRootfs()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -215,7 +215,7 @@ func TestEnter(t *testing.T) {
 	}
 	defer os.RemoveAll(root)
 
-	rootfs, err := newRootFs()
+	rootfs, err := newRootfs()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -318,7 +318,7 @@ func TestFreeze(t *testing.T) {
 	}
 	defer os.RemoveAll(root)
 
-	rootfs, err := newRootFs()
+	rootfs, err := newRootfs()
 	if err != nil {
 		t.Fatal(err)
 	}
