@@ -244,6 +244,7 @@ func TestEnter(t *testing.T) {
 
 	pconfig := libcontainer.Process{
 		Args:   []string{"sh", "-c", "cat && readlink /proc/self/ns/pid"},
+		Env:    standardEnvironment,
 		Stdin:  stdinR,
 		Stdout: &stdout,
 	}
@@ -344,6 +345,7 @@ func TestFreeze(t *testing.T) {
 
 	pconfig := libcontainer.Process{
 		Args:  []string{"cat"},
+		Env:   standardEnvironment,
 		Stdin: stdinR,
 	}
 	pid, err := container.Start(&pconfig)
