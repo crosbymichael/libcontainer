@@ -36,11 +36,17 @@ type Network struct {
 	// Note: This does not apply to loopback interfaces.
 	TxQueueLen int `json:"txqueuelen,omitempty"`
 
-	// The name of the veth interface on the Host.
-	VethHost string `json:"veth_host,omitempty"`
+	// Name of the network interface
+	Name string `json:"name,omitempty"`
 
-	// The name of the veth interface created inside the container for the child.
-	VethChild string `json:"veth_child,omitempty"`
+	// VethInterfaceHost is a unique name of the veth that will be created on the host machine
+	// with the full veth pair.
+	VethInterfaceHost string `json:"veth_host,omitempty"`
+
+	// VethTempPeer is a unique name of teh veth that will be created on the host machine then
+	// moved into the container's namespace when the veth pair is created.  Once the interface
+	// is inside the container's namespace the interface will be renamed to the specified Name..
+	VethTempPeer string `json:"veth_tmp_peer,omitempty"`
 }
 
 // Routes can be specified to create entries in the route table as the container is started

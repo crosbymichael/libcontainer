@@ -71,7 +71,7 @@ func (c *linuxContainer) Stats() (*Stats, error) {
 	for _, iface := range c.config.Networks {
 		switch iface.Type {
 		case "veth":
-			istats, err := getNetworkInterfaceStats(iface.VethHost)
+			istats, err := getNetworkInterfaceStats(iface.VethInterfaceHost)
 			if err != nil {
 				return stats, newGenericError(err, SystemError)
 			}
