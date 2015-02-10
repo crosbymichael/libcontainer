@@ -46,13 +46,9 @@ func setupRootfs(config *configs.Config) (err error) {
 	if err := setupPtmx(config); err != nil {
 		return err
 	}
-	uid, err := config.HostUID()
-	if err != nil {
-		return err
-	}
 	// stdin, stdout and stderr could be pointing to /dev/null from parent namespace.
 	// Re-open them inside this namespace.
-	if uid == 0 {
+	if !config.Namespaces.Contains(configs.NEWUSER) {
 		if err := reOpenDevNull(config.Rootfs); err != nil {
 			return err
 		}
