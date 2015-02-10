@@ -141,9 +141,11 @@ func (c *linuxContainer) newInitProcess(p *Process, cmd *exec.Cmd, parentPipe, c
 		if cmd.SysProcAttr.Credential == nil {
 			cmd.SysProcAttr.Credential = &syscall.Credential{}
 		}
+		cmd.Env = append(cmd.Env, "_LIBCONTAINER_INITTYPE=userns")
+	} else {
+		cmd.Env = append(cmd.Env, "_LIBCONTAINER_INITTYPE=standard")
 	}
 	cmd.SysProcAttr.Cloneflags = cloneFlags
-	cmd.Env = append(cmd.Env, "_LIBCONTAINER_INITTYPE=standard")
 	return &initProcess{
 		cmd:        cmd,
 		childPipe:  childPipe,
