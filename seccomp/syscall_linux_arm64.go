@@ -286,7 +286,7 @@ var SyscallMap = map[string]uint32{
 	"EXECVEAT":               syscall.SYS_EXECVEAT,
 }
 
-var SyscallMapMin = map[string]int{
+var minimumRequiredSyscalls = map[string]int{
 	"WRITE":        syscall.SYS_WRITE,
 	"RT_SIGRETURN": syscall.SYS_RT_SIGRETURN,
 	"EXIT_GROUP":   syscall.SYS_EXIT_GROUP,

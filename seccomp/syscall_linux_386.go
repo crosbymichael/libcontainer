@@ -356,7 +356,9 @@ var SyscallMap = map[string]uint32{
 	"PRLIMIT64":              syscall.SYS_PRLIMIT64,
 }
 
-var SyscallMapMin = map[string]uint32{
+// minimumRequiredSyscalls are the minimal syscalls required for the container's
+// process to start and are added to the context.
+var minimumRequiredSyscalls = map[string]uint32{
 	"WRITE":        syscall.SYS_WRITE,
 	"RT_SIGRETURN": syscall.SYS_RT_SIGRETURN,
 	"EXIT_GROUP":   syscall.SYS_EXIT_GROUP,

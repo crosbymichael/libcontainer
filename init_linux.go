@@ -261,16 +261,26 @@ func killCgroupProcesses(m cgroups.Manager) error {
 	return nil
 }
 
-func finalizeSeccomp(config *initConfig) error {
-	scmpCtx, _ := seccomp.ScmpInit(seccomp.ScmpActAllow)
-	if 0 == len(config.Config.SysCalls) {
-		for key := range seccomp.SyscallMap {
-			seccomp.ScmpAdd(scmpCtx, key, seccomp.ScmpActAllow)
-		}
-	} else {
-		for _, call := range config.Config.SysCalls {
-			seccomp.ScmpAdd(scmpCtx, call, seccomp.ScmpActAllow)
-		}
+func applySeccompProfile(profile *configs.Seccomp) error {
+	context, err := seccomp.New()
+	if err != nil {
+		return err
 	}
-	return seccomp.ScmpLoad(scmpCtx)
+	for _, s := range profile.Syscalls {
+		context.Add(s.Value, getAction(s.Action), s.Args...)
+	}
+	return context.Load()
+}
+
+func getAction(a configs.Action) seccomp.Action {
+	switch a {
+	case configs.Kill:
+		return seccomp.Kill
+	case configs.Trap:
+		return seccomp.Trap
+	case configs.Allow:
+		return seccomp.Allow
+	default:
+		return seccomp.Error(syscall.Errno(a))
+	}
 }
